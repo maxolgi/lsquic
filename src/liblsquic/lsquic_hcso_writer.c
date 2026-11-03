@@ -140,10 +140,10 @@ lsquic_hcso_write_settings (struct hcso_writer *writer,
 #   define frame_size_len 2
 #endif
     unsigned char buf[1 /* Frame type */ + /* Frame size */ frame_size_len
-        /* There are maximum seven settings that need to be written out and
+        /* There are maximum eight settings that need to be written out and
          * each value can be encoded in maximum 8 bytes:
          */
-        + 7 * (
+        + 8 * (
 #ifdef NDEBUG
             1   /* Each setting needs 1-byte varint number, */
 #else
@@ -205,6 +205,19 @@ lsquic_hcso_write_settings (struct hcso_writer *writer,
 #define WEBTRANSPORT_MAX_SESSIONS (0x2b603743)
         bits = hcso_setting_type2bits(writer, WEBTRANSPORT_MAX_SESSIONS);
         vint_write(p, WEBTRANSPORT_MAX_SESSIONS, bits, 1 << bits);
+        p += 1 << bits;
+        bits = vint_val2bits(max_webtransport_server_streams);
+        vint_write(p, max_webtransport_server_streams, bits, 1 << bits);
+        p += 1 << bits;
+
+        /* Write out SETTINGS_WEBTRANSPORT_MAX_SESSIONS (draft-07+).  The
+         * pre-draft-07 settings above are kept for older clients; strict
+         * clients (e.g. Safari 17+) ignore them and require this setting,
+         * aborting the connection when it is absent.
+         */
+#define SETTINGS_WEBTRANSPORT_MAX_SESSIONS (0xc671706a)
+        bits = hcso_setting_type2bits(writer, SETTINGS_WEBTRANSPORT_MAX_SESSIONS);
+        vint_write(p, SETTINGS_WEBTRANSPORT_MAX_SESSIONS, bits, 1 << bits);
         p += 1 << bits;
         bits = vint_val2bits(max_webtransport_server_streams);
         vint_write(p, max_webtransport_server_streams, bits, 1 << bits);
